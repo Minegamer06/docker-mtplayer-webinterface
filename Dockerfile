@@ -44,6 +44,7 @@ LABEL \
       org.label-schema.description="Docker container for MTPlayer" \
       org.opencontainers.image.description="Docker container for MTPlayer" \
       org.label-schema.version="${DOCKER_IMAGE_VERSION:-unknown}" \
+      org.opencontainers.image.source="https://github.com/Minegamer06/docker-mtplayer-webinterface" \
       org.label-schema.vcs-url="https://github.com/Minegamer06/docker-mtplayer-webinterface" \
       org.label-schema.schema-version="1.0"
 
