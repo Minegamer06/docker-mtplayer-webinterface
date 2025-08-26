@@ -33,7 +33,7 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/minegamer95/docker-mtplayer-webinterface
+          images: ghcr.io/minegamer95/docker-mediathekview-webinterface
 
       - name: Build and push Docker image (multi-arch)
         uses: docker/build-push-action@v5
@@ -44,6 +44,7 @@ jobs:
           build-args: |
             MEDIATHEK_VERSION=${{ matrix.version }}
           tags: |
-            ghcr.io/minegamer95/docker-mtplayer-webinterface:${{ matrix.version }}
+            ghcr.io/minegamer95/docker-mediathekview-webinterface:${{ matrix.version }}
+            ${{ matrix.version == '14.2.0' && 'ghcr.io/minegamer95/docker-mediathekview-webinterface:latest' || '' }}
           labels: |
             org.opencontainers.image.version=${{ matrix.version }}
