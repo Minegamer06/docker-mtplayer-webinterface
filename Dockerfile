@@ -1,62 +1,51 @@
-FROM alpine:latest AS unzipper
-RUN apk add unzip wget curl
-RUN mkdir /opt/ ; \
-  curl https://github.com/xaverW/MTPlayer/releases/download/version-20/MTPlayer-20__Linux.mit.Java__2025.04.07.zip | tar xvzf - -C /opt
+# Stage 1: Unzipper Stage - Download and unzip Mediathekview
+FROM alpine AS unzipper
+WORKDIR /tmp
+RUN apk add --no-cache wget unzip \
+    && wget -O mtplayer.zip "https://github.com/xaverW/MTPlayer/releases/download/version-20/MTPlayer-20__2025.04.07.zip" \
+    && unzip mtplayer.zip -d mtplayer
 
-# Pull base image.
-FROM jlesage/baseimage-gui:debian-10-v4
+# Stage 2: Final Stage - Base image with GUI and dependencies
+FROM jlesage/baseimage-gui:debian-12-v4
 
-ENV TERM=xterm
+# Set application name and metadata directory
+ENV APP_NAME=MTPlayer
+# Use Berlin as default timezone and de_DE as language because MTPlayer is for German Television
+ENV TZ=Europe/Berlin 
+ENV LANG=de_DE.UTF-8
+ENV MTPLAYER_AUTO=false
+VOLUME ["/config", "/output"]
 
-ENV MEDIATHEK_VERSION=14.2.0
-
-# Refresh apt cache
+# Generate and install favicons.
+RUN \
+    APP_ICON_URL=https://raw.githubusercontent.com/xaverW/MTPlayer/master/src/main/resources/de/p2tools/mtplayer/res/p2_logo_32.png && \
+    install_app_icon.sh "$APP_ICON_URL"
+    
+# Install MTPlayer dependencies: ffmpeg, vlc, and firefox
 RUN apt-get update \
-    && apt-get upgrade -y
-
-# Locale needed for storing files with umlaut
-RUN apt-get install -y apt-utils locales \
-    && echo en_US.UTF-8 UTF-8 > /etc/locale.gen \
-    && locale-gen
-
-ENV LC_ALL en_US.UTF-8
-ENV LANGUAGE en_US.UTF-8
-ENV LANG en_US.UTF-8
-
-# Runtime deps
-RUN apt-get install -y \
-        wget \
-	procps \
-        vlc \
-        flvstreamer \
-        ffmpeg \
+    && apt-get upgrade -y \
+    && apt-get install -y \
+    ffmpeg \
+    vlc \
+    openjdk-17-jre \
+    firefox-esr \
+    && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Metadata.
+LABEL \
+      org.label-schema.name="MTPlayer" \
+      org.label-schema.description="Docker container for MTPlayer" \
+      org.label-schema.version=1.0 \
+      org.label-schema.vcs-url="https://github.com/Minegamer06/docker-mtplayer-webinterface" \
+      org.label-schema.schema-version="1.0"
 
 # Maximize only the main/initial window.
 COPY src/main-window-selection.xml /etc/openbox/main-window-selection.xml
 
-# Set environment variables.
-ENV APP_NAME="MediathekView" \
-    S6_KILL_GRACETIME=8000
+# Copy extracted MTPlayer files from the unzipper stage
+COPY --from=unzipper /tmp/mtplayer/MTPlayer /app/mtplayer
 
-# Define mountable directories.
-VOLUME ["/config"]
-VOLUME ["/output"]
-
-# Metadata.
-LABEL \
-      org.label-schema.name="mediathekview" \
-      org.label-schema.description="Docker container for MediathekView" \
-      org.label-schema.version=$MEDIATHEK_VERSION \
-      org.label-schema.vcs-url="https://github.com/Minegamer95/docker-mediathekview-webinterface" \
-      org.label-schema.schema-version="1.0"
-
-# Define software download URLs.
-ARG MEDIATHEKVIEW_URL=https://github.com/xaverW/MTPlayer/releases/download/version-20/MTPlayer-20__Linux.mit.Java__2025.04.07.zip
-
-# download Mediathekview
-RUN mkdir -p /opt/MediathekView
-RUN wget -q ${MEDIATHEKVIEW_URL} -O MediathekView.tar.gz
-RUN tar xf MediathekView.tar.gz -C /opt
-
+# Copy and setup start script
 COPY src/startapp.sh /startapp.sh
+RUN chmod +x /startapp.sh
