@@ -11,11 +11,14 @@ FROM jlesage/baseimage-gui:debian-12-v4
 # Install MTPlayer dependencies: ffmpeg, vlc, and firefox
 RUN apt-get update \
     && apt-get upgrade -y \
-    && apt-get install -y \
+    && apt-get install -y --no-install-recommends \
     ffmpeg \
     vlc \
     openjdk-17-jre \
     firefox-esr \
+    locales \
+    && echo "de_DE.UTF-8 UTF-8" > /etc/locale.gen \
+    && locale-gen de_DE.UTF-8 \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -33,7 +36,9 @@ true
 
 # Use Berlin as default timezone and de_DE as language because MTPlayer is for German Television
 ENV TZ=Europe/Berlin 
-ENV LANG=de_DE.UTF-8
+ENV LANG=de_DE.UTF-8 \
+    LANGUAGE=de_DE.UTF-8 \
+    LC_ALL=de_DE.UTF-8
 ENV MTPLAYER_AUTO=false
 VOLUME ["/config", "/output"]
 
