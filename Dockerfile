@@ -8,19 +8,6 @@ RUN apk add --no-cache wget unzip \
 # Stage 2: Final Stage - Base image with GUI and dependencies
 FROM jlesage/baseimage-gui:debian-12-v4
 
-# Set application name and metadata directory
-ENV APP_NAME=MTPlayer
-# Use Berlin as default timezone and de_DE as language because MTPlayer is for German Television
-ENV TZ=Europe/Berlin 
-ENV LANG=de_DE.UTF-8
-ENV MTPLAYER_AUTO=false
-VOLUME ["/config", "/output"]
-
-# Generate and install favicons.
-RUN \
-    APP_ICON_URL=https://raw.githubusercontent.com/xaverW/MTPlayer/master/src/main/resources/de/p2tools/mtplayer/res/p2_logo_32.png && \
-    install_app_icon.sh "$APP_ICON_URL"
-    
 # Install MTPlayer dependencies: ffmpeg, vlc, and firefox
 RUN apt-get update \
     && apt-get upgrade -y \
@@ -32,11 +19,30 @@ RUN apt-get update \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Generate and install favicons.
+RUN \
+APP_ICON_URL=https://raw.githubusercontent.com/xaverW/MTPlayer/master/src/main/resources/de/p2tools/mtplayer/res/p2_logo_32.png && \
+install_app_icon.sh "$APP_ICON_URL"
+
+# Set invernal environment variables
+RUN \
+set-cont-env APP_NAME "MTPlayer" && \
+set-cont-env APP_VERSION "20" && \
+set-cont-env DOCKER_IMAGE_VERSION "$DOCKER_IMAGE_VERSION" && \
+true
+
+# Use Berlin as default timezone and de_DE as language because MTPlayer is for German Television
+ENV TZ=Europe/Berlin 
+ENV LANG=de_DE.UTF-8
+ENV MTPLAYER_AUTO=false
+VOLUME ["/config", "/output"]
+
+
 # Metadata.
 LABEL \
       org.label-schema.name="MTPlayer" \
       org.label-schema.description="Docker container for MTPlayer" \
-      org.label-schema.version=1.0 \
+      org.label-schema.version="${DOCKER_IMAGE_VERSION:-unknown}" \
       org.label-schema.vcs-url="https://github.com/Minegamer06/docker-mtplayer-webinterface" \
       org.label-schema.schema-version="1.0"
 
